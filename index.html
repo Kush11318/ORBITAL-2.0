@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sora:wght@400;700;800&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="debug"
+        style="display:none;position:fixed;top:0;left:0;background:rgba(0,0,0,0.8);color:red;z-index:9999;pointer-events:none;padding:10px;font-family:monospace;max-width:100vw;word-wrap:break-word;">
+    </div>
+    <script>
+        window.onerror = function (msg, url, line) {
+            document.getElementById('debug').style.display = 'block';
+            document.getElementById('debug').innerHTML += 'ERROR: ' + msg + ' at line ' + line + '<br>';
+        };
+        window.addEventListener('unhandledrejection', function (e) {
+            document.getElementById('debug').style.display = 'block';
+            document.getElementById('debug').innerHTML += 'PROMISE REJECTION: ' + String(e.reason) + '<br>';
+        });
+    </script>
+
+    <!-- Floating Top Title Dock -->
+    <div id="top-nav-dock" class="floating-top-dock" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        title="ORBITAL">
+        <h1 class="glitch-title top-dock-title" data-text="O R B I T A L">O R B I T A L</h1>
+    </div>
+
+    <!-- Floating HUD Navigation Terminal -->
+    <aside class="cyber-nav floating-nav-dock">
+        <div class="nav-container">
+            <!-- Daily View (Active) -->
+            <a class="nav-item active" href="#apod-section" title="Daily View">
+                <span class="material-symbols-outlined icon flex-shrink-0">auto_awesome</span>
+                <span class="nav-label">Daily View</span>
+            </a>
+            <!-- Asteroids -->
+            <a class="nav-item" href="#cad-section" title="Asteroids">
+                <span class="material-symbols-outlined icon flex-shrink-0">radar</span>
+                <span class="nav-label">Asteroids</span>
+            </a>
+            <!-- NEO Monitor -->
+            <a class="nav-item" href="#neo-section" title="NEO Monitor">
+                <span class="material-symbols-outlined icon flex-shrink-0">public</span>
+                <span class="nav-label">NEO Monitor</span>
+            </a>
+            <!-- Fireballs -->
+            <a class="nav-item" href="#fireball-section" title="Fireballs">
+                <span class="material-symbols-outlined icon flex-shrink-0">local_fire_department</span>
+                <span class="nav-label">Fireballs</span>
+            </a>
+            <!-- Satellites -->
+            <a class="nav-item" href="#satellite-section" title="Satellites">
+                <span class="material-symbols-outlined icon flex-shrink-0">satellite_alt</span>
+                <span class="nav-label">Satellites</span>
+            </a>
+            <!-- Space Weather -->
+            <a class="nav-item" href="#donki-database" title="Space Weather">
+                <span class="material-symbols-outlined icon flex-shrink-0">thunderstorm</span>
+                <span class="nav-label">Space Weather</span>
+            </a>
+            <!-- Impact Risk -->
+            <a class="nav-item" href="#sentry-section" title="Impact Risk">
+                <span class="material-symbols-outlined icon flex-shrink-0">warning</span>
+                <span class="nav-label">Impact Risk</span>
+            </a>
+            <!-- Experiments -->
+            <a class="nav-item" href="#osdr-section" title="Experiments">
+                <span class="material-symbols-outlined icon flex-shrink-0">science</span>
+                <span class="nav-label">Experiments</span>
+            </a>
+            <!-- Zen Mode divider and trigger -->
+            <div class="nav-separator"></div>
+            <a class="nav-item zen-btn" href="#" id="zen-mode-btn" title="Zen Mode">
+                <span class="material-symbols-outlined icon flex-shrink-0">visibility</span>
+                <span class="nav-label">Zen Mode</span>
+            </a>
+        </div>
+    </aside>
+
+
+    <!-- Simple dot cursor -->
+    <div class="custom-cursor"></div>
+
+    <div class="scanlines"></div>
+
+    <!-- Sci-Fi HUD Borders & Data -->
+    <div class="hud-top-left">SYS.VER // 10.05</div>
+    <div class="hud-top-right">
+        <div class="time-readout">--:--:--</div>
+        <div class="date-readout">---.--.----</div>
+    </div>
+    <div class="hud-bottom-right">MONITORING COSMOS DATA...</div>
+    <div class="hud-bottom-left">
+        <div class="coord-label">LAT_SCAN:</div>
+        <div class="coords-display">0.0000° N, 0.0000° E</div>
+    </div>
+
+
+
+    <!-- Scanner Frames -->
+    <div class="scan-frame frame-tl"></div>
+    <div class="scan-frame frame-tr"></div>
+    <div class="scan-frame frame-bl"></div>
+    <div class="scan-frame frame-br"></div>
+
+    <!-- Futuristic Intro Title -->
+    <div class="intro-overlay">
+        <h1 class="glitch-title" data-text="O R B I T A L">O R B I T A L</h1>
+        <p class="subtitle">PROJECTING COSMIC TELEMETRY</p>
+        <div class="scroll-hint">
+            <span class="scroll-label">SCROLL TO ENTER MISSION</span>
+            <span class="scroll-arrow"></span>
+        </div>
+    </div>
+
+    <canvas class="webgl"></canvas>
+
+    <!-- High-height container just to scroll the animation -->
+    <div class="animation-scroll-track"></div>
+
+    <!-- Loading Screen -->
+    <div class="site-loading-screen" id="site-loading-screen">
+        <div class="loading-content">
+            <h1 class="glitch-title loading-glitch" data-text="INITIALIZING">INITIALIZING</h1>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="site-loading-bar"></div>
+            </div>
+            <p class="loading-status" id="site-loading-status">ESTABLISHING UPLINK... <span
+                    id="site-loading-percentage">0%</span></p>
+        </div>
+    </div>
+
+    <div class="content-container">
+        <!-- Animated background grid for the content area -->
+        <div class="cyber-grid"></div>
+
+
+
+        <section id="apod-section" class="section apod-section full-screen-panel">
+            <div class="apod-new-container">
+                <!-- Loading state -->
+                <div id="apod-loading" class="apod-loading">
+                    <div class="scanner-line"></div>
+                    <p>ESTABLISHING UPLINK TO NASA DEEP SPACE NETWORK...</p>
+                </div>
+
+                <!-- Error state -->
+                <div id="apod-error" class="apod-error" style="display: none;">
+                    <p class="error-text">Unable to load today's astronomy image.</p>
+                    <button id="apod-retry-btn" class="cyber-button">RETRY CONNECTION</button>
+                </div>
+
+                <!-- Data state (glorious new layout) -->
+                <div id="apod-data" class="apod-new-data-layout" style="display: none;">
+
+                    <!-- Header Section -->
+                    <div class="apod-new-header">
+                        <span class="apod-new-label">Astronomy Picture of the Day</span>
+                        <h1 id="apod-title" class="apod-new-title neon-glow"></h1>
+                        <div class="apod-new-meta">
+                            <span id="apod-copyright" class="apod-new-credit"></span>
+                            <span class="apod-new-separator">//</span>
+                            <span id="apod-date" class="apod-new-date"></span>
+                        </div>
+                    </div>
+
+                    <!-- Unified APOD Console Board -->
+                    <div class="apod-unified-board">
+                        <!-- Decorative Corners framing the entire unified console -->
+                        <div class="apod-corner-dec dec-tl"></div>
+                        <div class="apod-corner-dec dec-tr"></div>
+                        <div class="apod-corner-dec dec-bl"></div>
+                        <div class="apod-corner-dec dec-br"></div>
+
+                        <!-- Dynamic Media Center -->
+                        <div class="apod-new-media-wrapper group">
+                            <!-- Media Viewport -->
+                            <div class="apod-new-viewport" id="apod-media-container">
+                                <!-- Image or Video injected here by main.js -->
+                            </div>
+
+                            <!-- Integrated Controls (Download only, only for images) -->
+                            <div class="apod-new-controls">
+                                <button class="apod-ctrl-btn" id="apod-download-btn" title="DOWNLOAD DIRECTLY">
+                                    <span class="material-symbols-outlined">download</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Description Section -->
+                        <div class="apod-new-description-grid" id="apod-explanation-container">
+                            <!-- Paragraphs will be injected here automatically by main.js -->
+                            <p id="apod-explanation" class="apod-explanation" style="display:none;"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: CLOSE_APPROACH_MONITOR</div>
+        </div>
+
+        <section id="cad-section" class="section cad-section dashboard-section">
+            <div class="cad-new-container">
+                <!-- Unified Glass Console Board -->
+                <div class="cad-unified-board">
+                    <!-- Decorative Corners framing the unified board -->
+                    <div class="cad-corner-dec dec-tl"></div>
+                    <div class="cad-corner-dec dec-tr"></div>
+                    <div class="cad-corner-dec dec-bl"></div>
+                    <div class="cad-corner-dec dec-br"></div>
+
+                    <!-- Header Content -->
+                    <div class="flex flex-col gap-2">
+                        <span class="cad-new-label">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">radar</span>
+                            GLOBAL NEO TELEMETRY // REAL-TIME
+                            <span class="cad-status-badge">
+                                <span class="cad-status-dot animate-pulse-soft"></span>
+                                SYSTEM_LIVE
+                            </span>
+                        </span>
+                        <h1 class="cad-new-title">ASTEROID CLOSE APPROACH TRACKER</h1>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="cad-controls-row">
+                        <div class="cad-threshold-container">
+                            <label class="cad-threshold-label" for="cad-dist-filter">Threshold</label>
+                            <div class="cad-select-wrapper">
+                                <select id="cad-dist-filter">
+                                    <option value="0.05LD">0.05 LD</option>
+                                    <option value="0.10LD">0.10 LD</option>
+                                    <option value="0.25LD">0.25 LD</option>
+                                    <option value="1LD">1.00 LD</option>
+                                    <option value="5LD">5.00 LD</option>
+                                    <option value="10LD" selected>10.00 LD</option>
+                                </select>
+                                <span class="material-symbols-outlined select-icon">expand_more</span>
+                            </div>
+                        </div>
+                        <button id="cad-fetch-btn" class="cad-update-btn">
+                            <span class="material-symbols-outlined">sync</span>
+                            UPDATE MONITOR
+                        </button>
+                    </div>
+
+                    <!-- CAD Monitor Container -->
+                    <div class="cad-container">
+                        <!-- Loading state -->
+                        <div id="cad-loading" class="neo-loading">
+                            <div class="scanner-line"></div>
+                            <p>INTERCEPTING JPL CAD FEED...</p>
+                            <div class="cyber-progress-container">
+                                <div class="cyber-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Error state -->
+                        <div id="cad-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Unable to load close approach data. Please try again later.</p>
+                        </div>
+
+                        <!-- Data state (List layout) -->
+                        <div id="cad-data" style="display: none; width: 100%;">
+                            <div class="cad-list-container">
+                                <div class="cad-list-header">
+                                    <div>DESIGNATION</div>
+                                    <div>PROXIMITY (LD)</div>
+                                    <div>DATE</div>
+                                    <div>VELOCITY</div>
+                                    <div class="text-right">ASSESSMENT</div>
+                                </div>
+                                <div id="cad-list-rows" class="cad-list-rows-wrapper">
+                                    <!-- Dynamic rows injected here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: ASTEROID_TRACKER</div>
+        </div>
+
+        <section id="neo-section" class="section neo-section dashboard-section">
+            <div class="neo-new-container">
+                <!-- Unified Glass Console Board -->
+                <div class="neo-unified-board">
+                    <!-- Decorative Corners framing the unified board -->
+                    <div class="neo-corner-dec dec-tl"></div>
+                    <div class="neo-corner-dec dec-tr"></div>
+                    <div class="neo-corner-dec dec-bl"></div>
+                    <div class="neo-corner-dec dec-br"></div>
+
+                    <!-- Header Content -->
+                    <div class="flex flex-col gap-2">
+                        <span class="neo-new-label">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">public</span>
+                            SYSTEM.SEC-03 // NEO.TRACK
+                            <span class="neo-status-badge">
+                                <span class="neo-status-dot animate-pulse-soft"></span>
+                                DATA_STREAM_ONLINE
+                            </span>
+                        </span>
+                        <h1 class="neo-new-title">NEAR EARTH ASTEROID MONITOR</h1>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="neo-controls-row">
+                        <!-- Inputs Card -->
+                        <div class="neo-inputs-card">
+                            <div class="neo-input-group">
+                                <label for="neo-start-date">START SCAN</label>
+                                <input type="date" id="neo-start-date" class="cyber-input">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="neo-end-date">END SCAN</label>
+                                <input type="date" id="neo-end-date" class="cyber-input">
+                            </div>
+                            <button id="neo-fetch-btn" class="neo-update-btn">
+                                INITIATE SCAN
+                            </button>
+                        </div>
+
+                        <!-- Stats Wrapper -->
+                        <div class="neo-stats-wrapper">
+                            <div class="neo-stat-box border-l-primary">
+                                <span class="neo-stat-label">TOTAL DETECTED</span>
+                                <span class="neo-stat-value text-primary glow-cyan" id="neo-total-count">0</span>
+                            </div>
+                            <div class="neo-stat-box border-l-secondary">
+                                <span class="neo-stat-label">POTENTIALLY HAZARDOUS</span>
+                                <span class="neo-stat-value text-secondary glow-pink" id="neo-hazard-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEO Monitor Container -->
+                    <div class="neo-container">
+                        <!-- Loading state -->
+                        <div id="neo-loading" class="neo-loading">
+                            <div class="scanner-line"></div>
+                            <p>CALCULATING TRAJECTORIES & HAZARD PROBABILITIES...</p>
+                            <div class="cyber-progress-container">
+                                <div class="cyber-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Error state -->
+                        <div id="neo-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Unable to load asteroid data. Please try again later.</p>
+                        </div>
+
+                        <!-- Data state (List layout) -->
+                        <div id="neo-data" style="display: none; width: 100%; flex-direction: column;">
+                            <div class="neo-list-container">
+                                <div class="neo-list-header">
+                                    <div>DESIGNATION / CLASSIFICATION</div>
+                                    <div>DIAMETER (EST)</div>
+                                    <div>VELOCITY</div>
+                                    <div>MISS DISTANCE</div>
+                                    <div>APPROACH DATE</div>
+                                    <div class="text-right">ASSESSMENT</div>
+                                </div>
+                                <div id="neo-grid" class="neo-list-rows-wrapper">
+                                    <!-- Dynamic rows injected here -->
+                                </div>
+                            </div>
+                            <div id="neo-load-more" style="display: none; text-align: center; margin-top: 24px; padding-bottom: 8px;">
+                                <button id="neo-load-more-btn" class="neo-update-btn" style="margin: 0 auto;">LOAD MORE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: FIREBALL_TELEMETRY</div>
+        </div>
+
+        <section id="fireball-section" class="section fireball-section dashboard-section">
+            <div class="fb-new-container">
+                <!-- Unified Glass Console Board -->
+                <div class="fb-unified-board">
+                    <!-- Decorative Corners -->
+                    <div class="fb-corner-dec dec-tl"></div>
+                    <div class="fb-corner-dec dec-tr"></div>
+                    <div class="fb-corner-dec dec-bl"></div>
+                    <div class="fb-corner-dec dec-br"></div>
+
+                    <!-- Header Content -->
+                    <div class="flex flex-col gap-2">
+                        <span class="fb-new-label">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">local_fire_department</span>
+                            SYSTEM.SEC-04 // FIRE.TRACK
+                            <span class="fb-status-badge">
+                                <span class="fb-status-dot animate-pulse-soft"></span>
+                                MONITORING_LIVE
+                            </span>
+                        </span>
+                        <h1 class="fb-new-title">METEOR / FIREBALL EVENT TRACKER</h1>
+                        <p class="fb-new-subtitle">Telemetry from NASA/JPL's CNEOS detailing atmospheric fireball impacts across all monitored sectors.</p>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="fb-controls-row">
+                        <!-- Inputs Card -->
+                        <div class="fb-inputs-card">
+                            <div class="neo-input-group">
+                                <label for="fireball-start-date">START DATE</label>
+                                <input type="date" id="fireball-start-date" class="cyber-input">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="fireball-end-date">END DATE</label>
+                                <input type="date" id="fireball-end-date" class="cyber-input">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="fireball-sort">SORT BY</label>
+                                <select id="fireball-sort" class="cyber-input">
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="energy-desc">Highest Energy</option>
+                                    <option value="energy-asc">Lowest Energy</option>
+                                </select>
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="fireball-filter">MIN ENERGY (kt)</label>
+                                <input type="number" id="fireball-filter" class="cyber-input" value="0.1" step="0.1" min="0">
+                            </div>
+                            <button id="fireball-apply-btn" class="fb-update-btn">
+                                CALIBRATE
+                            </button>
+                        </div>
+
+                        <!-- Stats Wrapper -->
+                        <div class="fb-stats-wrapper">
+                            <div class="fb-stat-box border-l-fb-cyan">
+                                <span class="fb-stat-label">TOTAL DETECTIONS</span>
+                                <span class="fb-stat-value glow-cyan" id="fb-total-count">0</span>
+                            </div>
+                            <div class="fb-stat-box border-l-fb-pink">
+                                <span class="fb-stat-label">HIGH ENERGY IMPACTS</span>
+                                <span class="fb-stat-value glow-pink" id="fb-high-energy-count">0</span>
+                            </div>
+                            <div class="fb-stat-box border-l-fb-orange">
+                                <span class="fb-stat-label">AVG ALTITUDE (KM)</span>
+                                <span class="fb-stat-value glow-orange" id="fb-avg-alt">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fireball Monitor Container -->
+                    <div class="neo-container">
+                        <!-- Loading state -->
+                        <div id="fireball-loading" class="neo-loading">
+                            <div class="scanner-line"></div>
+                            <p>RETRIEVING JPL CNEOS FIREBALL TELEMETRY...</p>
+                            <div class="cyber-progress-container">
+                                <div class="cyber-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Error state -->
+                        <div id="fireball-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Unable to load meteor data. Please try again later.</p>
+                        </div>
+
+                        <!-- Data state (List layout) -->
+                        <div id="fireball-data" style="display: none; width: 100%; flex-direction: column;">
+                            <div class="fb-list-container">
+                                <div class="fb-list-header">
+                                    <div>DESIGNATION</div>
+                                    <div>COORDINATES</div>
+                                    <div>ALT / VELOCITY</div>
+                                    <div>IMPACT ENERGY (KT)</div>
+                                    <div class="text-right">STATUS</div>
+                                </div>
+                                <div id="fireball-grid" class="fb-list-rows-wrapper">
+                                    <!-- Dynamic rows injected here -->
+                                </div>
+                            </div>
+                            <div id="fireball-load-more" style="display: none; text-align: center; margin-top: 24px; padding-bottom: 8px;">
+                                <button id="fireball-load-more-btn" class="fb-update-btn" style="margin: 0 auto;">LOAD MORE TELEMETRY</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: SATELLITE_CATALOG</div>
+        </div>
+
+        <section id="satellite-section" class="section satellite-section dashboard-section">
+            <div class="unified-section-container">
+                <div class="unified-board sat-board">
+                    <div class="unified-corner-dec accent-violet dec-tl"></div>
+                    <div class="unified-corner-dec accent-violet dec-tr"></div>
+                    <div class="unified-corner-dec accent-violet dec-bl"></div>
+                    <div class="unified-corner-dec accent-violet dec-br"></div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="unified-label accent-violet-text">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">satellite_alt</span>
+                            SYSTEM.SEC-05 // SAT.EXPLORER
+                            <span class="unified-status-badge accent-violet-badge">
+                                <span class="unified-status-dot accent-violet-dot animate-pulse-soft"></span>
+                                SCANNING
+                            </span>
+                        </span>
+                        <h1 class="unified-title accent-violet-title">SATELLITE EXPLORER</h1>
+                        <p class="unified-subtitle">Fetch satellite orbital elements directly from CelesTrak on demand.</p>
+                    </div>
+
+                    <div class="unified-controls-row">
+                        <div class="unified-inputs-card accent-violet-card">
+                            <div class="neo-input-group">
+                                <label for="sat-category-select">SATELLITE CATEGORY</label>
+                                <select id="sat-category-select" class="cyber-input">
+                                    <option value="starlink">Starlink</option>
+                                    <option value="active">Active satellites</option>
+                                    <option value="stations">Space stations</option>
+                                    <option value="weather">Weather satellites</option>
+                                    <option value="gps-ops">GPS satellites</option>
+                                </select>
+                            </div>
+                            <button id="sat-load-btn" class="unified-btn accent-violet-btn">LOAD SATELLITES</button>
+                            <div class="neo-input-group">
+                                <label for="sat-name-input">SEARCH BY NAME</label>
+                                <input type="text" id="sat-name-input" class="cyber-input" placeholder="e.g. ISS, STARLINK, HUBBLE">
+                            </div>
+                            <button id="sat-name-btn" class="unified-btn accent-violet-btn-outline">SEARCH</button>
+                            <div class="neo-input-group">
+                                <label for="sat-norad-input">SEARCH BY NORAD ID</label>
+                                <input type="text" inputmode="numeric" id="sat-norad-input" class="cyber-input" placeholder="e.g. 25544">
+                            </div>
+                            <button id="sat-norad-btn" class="unified-btn accent-violet-btn-outline">LOOKUP</button>
+                        </div>
+                    </div>
+
+                    <div class="neo-container">
+                        <div id="sat-loading" class="neo-loading" style="display: none;">
+                            <div class="scanner-line"></div>
+                            <p>FETCHING CELESTRAK ORBITAL ELEMENTS...</p>
+                            <div class="cyber-progress-container"><div class="cyber-progress-bar"></div></div>
+                        </div>
+                        <div id="sat-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Unable to load satellite data. Please try again later.</p>
+                        </div>
+                        <div id="sat-data" class="neo-layout" style="display: none;">
+                            <div class="sat-grid" id="sat-grid"></div>
+                            <div id="sat-load-more" style="display: none; text-align: center; margin-top: 20px;">
+                                <button id="sat-load-more-btn" class="unified-btn accent-violet-btn-outline" style="margin: 0 auto;">LOAD MORE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NASA DONKI SPACE WEATHER SECTION -->
+        <section id="donki-database" class="content-section donki-section dashboard-section">
+            <div class="unified-section-container">
+                <div class="unified-board donki-board">
+                    <div class="unified-corner-dec accent-yellow dec-tl"></div>
+                    <div class="unified-corner-dec accent-yellow dec-tr"></div>
+                    <div class="unified-corner-dec accent-yellow dec-bl"></div>
+                    <div class="unified-corner-dec accent-yellow dec-br"></div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="unified-label accent-yellow-text">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">wb_sunny</span>
+                            SYS.ARC-03 // NASA.DONKI
+                            <span class="unified-status-badge accent-yellow-badge">
+                                <span class="unified-status-dot accent-yellow-dot animate-pulse-soft"></span>
+                                CONNECTED
+                            </span>
+                        </span>
+                        <h1 class="unified-title accent-yellow-title">SPACE WEATHER MONITOR</h1>
+                        <p class="unified-subtitle">Track historical and active Coronal Mass Ejections (CMEs) via NASA's Space Weather Database Of Notifications, Knowledge, Information.</p>
+                    </div>
+
+                    <div class="unified-controls-row">
+                        <div class="unified-inputs-card accent-yellow-card">
+                            <div class="neo-input-group">
+                                <label for="donki-start-date">START DATE</label>
+                                <input type="date" id="donki-start-date" class="cyber-input">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="donki-end-date">END DATE</label>
+                                <input type="date" id="donki-end-date" class="cyber-input">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="donki-speed">MIN SPEED (km/s)</label>
+                                <input type="number" id="donki-speed" class="cyber-input" value="0" min="0">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="donki-half-angle">MIN HALF ANGLE (°)</label>
+                                <input type="number" id="donki-half-angle" class="cyber-input" value="0" min="0">
+                            </div>
+                            <div class="neo-input-group">
+                                <label for="donki-catalog">CATALOG</label>
+                                <select id="donki-catalog" class="cyber-input">
+                                    <option value="ALL">ALL</option>
+                                    <option value="SWRC_CATALOG">SWRC_CATALOG</option>
+                                    <option value="JANG_ET_AL_CATALOG">JANG_ET_AL_CATALOG</option>
+                                </select>
+                            </div>
+                            <div class="neo-input-group donki-check-group">
+                                <label for="donki-most-accurate" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="donki-most-accurate" checked>
+                                    MOST ACCURATE ONLY
+                                </label>
+                                <label for="donki-complete-entry" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="donki-complete-entry" checked>
+                                    COMPLETE ENTRY ONLY
+                                </label>
+                            </div>
+                            <button id="donki-search-btn" class="unified-btn accent-yellow-btn">QUERY SOLAR DATA</button>
+                        </div>
+                    </div>
+
+                    <div class="neo-container">
+                        <div id="donki-loading" class="neo-loading" style="display: none;">
+                            <div class="scanner-line"></div>
+                            <div class="loading-text">LOCATING CME RECORDS...</div>
+                            <div class="cyber-progress-container"><div class="cyber-progress-bar"></div></div>
+                        </div>
+                        <div id="donki-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Space Weather sync failed.</p>
+                        </div>
+                        <div id="donki-empty" class="neo-error" style="display: none; border-color:#facc15;">
+                            <p class="error-text" style="color:#facc15;">No Coronal Mass Ejections logged during this period.</p>
+                        </div>
+                        <div id="donki-data" class="donki-data-container" style="display: none;">
+                            <div class="donki-data-header">
+                                <span class="unified-label accent-yellow-text">SOLAR EVENTS:</span>
+                                <span class="donki-event-count" id="donki-count">0</span>
+                            </div>
+                            <div class="donki-grid" id="donki-grid"></div>
+                            <div id="donki-load-more" style="display: none; text-align: center; margin-top: 20px;">
+                                <button id="donki-load-more-btn" class="unified-btn accent-yellow-btn-outline" style="margin: 0 auto;">LOAD MORE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line hazard-line"></div>
+            <div class="boundary-label hazard-text">SECTOR: IMPACT_RISK_ASSESSMENT</div>
+        </div>
+
+        <!-- CNEOS SENTRY IMPACT RISK SECTION -->
+        <section id="sentry-section" class="section sentry-section dashboard-section">
+            <div class="unified-section-container">
+                <div class="unified-board sentry-board">
+                    <div class="unified-corner-dec accent-red dec-tl"></div>
+                    <div class="unified-corner-dec accent-red dec-tr"></div>
+                    <div class="unified-corner-dec accent-red dec-bl"></div>
+                    <div class="unified-corner-dec accent-red dec-br"></div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="unified-label accent-red-text">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">crisis_alert</span>
+                            SYS.SEC-09 // CNEOS.SENTRY
+                            <span class="unified-status-badge accent-red-badge">
+                                <span class="unified-status-dot accent-red-dot animate-pulse-soft"></span>
+                                TRACKING VIRTUAL IMPACTORS
+                            </span>
+                        </span>
+                        <h1 class="unified-title accent-red-title">IMPACT RISK ASSESSMENT</h1>
+                        <p class="unified-subtitle">NASA JPL CNEOS: Automated system continually scanning the asteroid catalog for impact possibilities.</p>
+                    </div>
+
+                    <div class="unified-controls-row">
+                        <div class="unified-inputs-card accent-red-card">
+                            <div class="neo-input-group" style="flex: 2; min-width: 200px;">
+                                <label for="sentry-filter" style="color: #ffb703;">THREAT LEVEL FILTER</label>
+                                <select id="sentry-filter" class="cyber-input hazard-input">
+                                    <option value="all">ALL VIRTUAL IMPACTORS (IP ≥ 1e-3)</option>
+                                    <option value="high">HIGH PROBABILITY ONLY</option>
+                                </select>
+                            </div>
+                            <button id="sentry-fetch-btn" class="unified-btn accent-red-btn">REFRESH THREAT BOARD</button>
+                            <div class="neo-input-group" style="flex: 2; min-width: 200px;">
+                                <label for="sentry-des-input" style="color: #ffb703;">CHECK SPECIFIC NEO</label>
+                                <input type="text" id="sentry-des-input" class="cyber-input hazard-input" placeholder="e.g. 99942, 2009 JF1">
+                            </div>
+                            <button id="sentry-des-btn" class="unified-btn accent-red-btn-outline">ANALYZE ORBIT</button>
+                        </div>
+                    </div>
+
+                    <div class="sentry-container neo-container">
+                        <div id="sentry-loading" class="neo-loading hazard-loading" style="display: none;">
+                            <div class="scanner-line hazard-scanner"></div>
+                            <p style="color:#ffb703;">COMPILING EARTH COLLISION TRAJECTORIES...</p>
+                            <div class="cyber-progress-container"><div class="cyber-progress-bar hazard-progress"></div></div>
+                        </div>
+                        <div id="sentry-error" class="neo-error hazard-error" style="display: none;">
+                            <p class="error-text">Unable to initialize Sentry connection. Defense grid offline.</p>
+                        </div>
+                        <div id="sentry-empty" class="neo-error" style="display: none; border-color:#00ffaa;">
+                            <p class="error-text" style="color:#00ffaa;">THREAT NEUTRALIZED. Object removed from Sentry tracking list.</p>
+                        </div>
+                        <div id="sentry-table-data" class="neo-layout" style="display: none; margin-top:20px;">
+                            <div class="sentry-list-container">
+                                <table class="data-table sentry-table" id="sentry-table">
+                                    <thead>
+                                        <tr>
+                                            <th>DESIGNATION</th>
+                                            <th>IMPACT PROBABILITY</th>
+                                            <th>ENERGY (Mt)</th>
+                                            <th>PALERMO SCALE</th>
+                                            <th>TORINO SCALE</th>
+                                            <th>NEXT IMPACT DATE</th>
+                                            <th>ACTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="sentry-detail-data" class="neo-layout sentry-detail-layout"
+                            style="display: none; margin-top:20px; border:1px solid rgba(255,60,0,0.5); padding:15px; background:rgba(0,0,0,0.6);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,60,0,0.3); padding-bottom:10px; margin-bottom:15px;">
+                                <h3 id="sentry-detail-title" style="color:#ff3c00; margin:0;">ASTEROID (---)</h3>
+                                <button id="sentry-detail-close" class="unified-btn accent-red-btn-outline" style="padding:4px 12px; font-size:0.75rem;">CLOSE</button>
+                            </div>
+                            <div class="ssc-readouts">
+                                <div class="readout-card" style="background:rgba(255,60,0,0.1); border:1px solid #ff3c00;">
+                                    <span style="font-size:0.6rem; color:#ffb703; display:block;">DIAMETER (EST)</span>
+                                    <span style="font-size:1.5rem; color:#fff;" id="sentry-detail-dia">--- km</span>
+                                </div>
+                                <div class="readout-card" style="background:rgba(255,60,0,0.1); border:1px solid #ff3c00;">
+                                    <span style="font-size:0.6rem; color:#ffb703; display:block;">VELOCITY (V_IMP)</span>
+                                    <span style="font-size:1.5rem; color:#fff;" id="sentry-detail-vel">--- km/s</span>
+                                </div>
+                                <div class="readout-card" style="background:rgba(255,60,0,0.1); border:1px solid #ff3c00;">
+                                    <span style="font-size:0.6rem; color:#ffb703; display:block;">POTENTIAL IMPACTS</span>
+                                    <span style="font-size:1.5rem; color:#fff;" id="sentry-detail-nimp">0</span>
+                                </div>
+                            </div>
+                            <h4 style="color:#ffb703; margin-bottom:10px; margin-top:15px; font-size:0.9rem;">PROJECTED IMPACT DATES</h4>
+                            <div class="sentry-list-container" style="max-height:250px;">
+                                <table class="data-table sentry-detail-table" id="sentry-detail-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ESTIMATED DATE</th>
+                                            <th>PROBABILITY</th>
+                                            <th>SIGMA_VI</th>
+                                            <th>PALERMO</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: OSDR_RESEARCH_DATABASE</div>
+        </div>
+
+        <section id="osdr-section" class="section osdr-section dashboard-section">
+            <div class="unified-section-container">
+                <div class="unified-board osdr-board">
+                    <div class="unified-corner-dec accent-green dec-tl"></div>
+                    <div class="unified-corner-dec accent-green dec-tr"></div>
+                    <div class="unified-corner-dec accent-green dec-bl"></div>
+                    <div class="unified-corner-dec accent-green dec-br"></div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="unified-label accent-green-text">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse-soft">science</span>
+                            SYS.SEC-06 // OSDR.ARCHIVE
+                            <span class="unified-status-badge accent-green-badge">
+                                <span class="unified-status-dot accent-green-dot animate-pulse-soft"></span>
+                                CONNECTED
+                            </span>
+                        </span>
+                        <h1 class="unified-title accent-green-title">SPACE EXPERIMENT EXPLORER</h1>
+                        <p class="unified-subtitle">NASA Open Science Data Repository: Biological and physical scientific experiments conducted in space.</p>
+                    </div>
+
+                    <div class="unified-controls-row">
+                        <div class="unified-inputs-card accent-green-card">
+                            <div class="neo-input-group" style="flex: 3;">
+                                <label for="osdr-search-input">SEARCH EXPERIMENTS (TERM / MISSION / ORGANISM)</label>
+                                <input type="text" id="osdr-search-input" class="cyber-input" placeholder="e.g. mouse liver, ISS, SpaceX">
+                            </div>
+                            <button id="osdr-search-btn" class="unified-btn accent-green-btn">QUERY DB</button>
+                        </div>
+                    </div>
+
+                    <div class="osdr-container neo-container">
+                        <div id="osdr-loading" class="neo-loading" style="display: none;">
+                            <div class="scanner-line"></div>
+                            <p>ACCESSING DEEP SPACE ARCHIVES...</p>
+                            <div class="cyber-progress-container"><div class="cyber-progress-bar"></div></div>
+                        </div>
+                        <div id="osdr-error" class="neo-error" style="display: none;">
+                            <p class="error-text">Unable to load space experiment data. Please try again later.</p>
+                        </div>
+                        <div id="osdr-empty" class="neo-error" style="display: none;">
+                            <p class="error-text" style="color:#facc15;">NO RECORDS FOUND IN ARCHIVE.</p>
+                        </div>
+                        <div id="osdr-data" class="neo-layout" style="display: none;">
+                            <div class="neo-grid" id="osdr-grid"></div>
+                            <div style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">
+                                <button id="osdr-load-more" class="unified-btn accent-green-btn-outline" style="display: none; margin: 0 auto;">LOAD MORE RECORDS</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- OSDR Detail Modal -->
+        <div id="osdr-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content cyber-panel">
+                <div class="panel-header">
+                    <span class="panel-id" id="modal-osdr-id">OSDR.RECORD // ---</span>
+                    <button class="modal-close" id="modal-osdr-close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <h2 id="modal-osdr-title" style="margin-bottom: 0.5rem; color: #fff;">EXPERIMENT TITLE</h2>
+                    <div style="font-family: monospace; color: #00fff9; margin-bottom: 1.5rem; letter-spacing: 1px;"
+                        id="modal-osdr-mission">MISSION: ---</div>
+
+                    <div class="osdr-desc-container"
+                        style="background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 255, 249, 0.2); padding: 1.5rem; margin-bottom: 1.5rem; color: #ccc; font-family: monospace; line-height: 1.6; max-height: 300px; overflow-y: auto;">
+                        <p id="modal-osdr-desc">Description goes here...</p>
+                    </div>
+
+                    <div class="sat-fields-grid" id="modal-osdr-fields-grid">
+                        <!-- Additional fields like organism, center, PI injected here -->
+                    </div>
+                </div>
+                <div class="panel-footer-meta">
+                    <span id="modal-osdr-uid">UID: ---</span>
+                    <span id="modal-osdr-score">RELEVANCE: ---</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boundary -->
+        <div class="sector-boundary">
+            <div class="boundary-line"></div>
+            <div class="boundary-label">SECTOR: TRANSMISSION_END</div>
+        </div>
+
+        <footer class="cyber-footer">
+            <div class="mission-status">
+                <span class="label">MISSION STATUS:</span>
+                <span class="value">ORBITAL_STABILITY_100%</span>
+            </div>
+            <div class="footer-credits">
+                <span>SYS // TERRA.OS</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Black fade overlay -->
+    <div class="black-transition"></div>
+
+    <!-- Floating connection dock -->
+    <div class="connection-dock">
+        <!-- NASA_API -->
+        <div class="dock-item active-status">
+            <div class="dock-item-status">
+                <span class="status-dot pulse"></span>
+                <span>CONNECTED</span>
+            </div>
+            <span class="dock-item-label">NASA_API</span>
+        </div>
+        <!-- TLE_STREAM -->
+        <div class="dock-item active-status"
+            onclick="document.getElementById('satellite-section').scrollIntoView({behavior: 'smooth'})">
+            <div class="dock-item-status">
+                <span class="status-dot pulse"></span>
+                <span>ACTIVE</span>
+            </div>
+            <span class="dock-item-label">TLE_STREAM</span>
+        </div>
+        <!-- JPL_LINK -->
+        <div class="dock-item active-status"
+            onclick="document.getElementById('cad-section').scrollIntoView({behavior: 'smooth'})">
+            <div class="dock-item-status">
+                <span class="status-dot pulse"></span>
+                <span>STABLE</span>
+            </div>
+            <span class="dock-item-label">JPL_LINK</span>
+        </div>
+    </div>
+
+    <!-- ZEN Mode Elements -->
+    <div id="zen-quote" class="zen-quote-container">
+        <p class="quote-text">"Look again at that dot. That's here. That's home. That's us."</p>
+        <span class="zen-author">- Carl Sagan</span>
+        <button id="dream-mode-btn" class="dream-btn">[ ENABLE IMAGINATIONS ]</button>
+    </div>
+    <div id="zen-exit-hint" class="zen-exit-hint">
+        PRESS ESC OR CLICK TO EXIT ZEN MODE
+    </div>
+
+    <!-- Import maps polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>

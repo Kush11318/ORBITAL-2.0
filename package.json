@@ -1,0 +1,24 @@
+{
+  "name": "orbital-space-telemetry-dashboard",
+  "version": "1.0.0",
+  "description": "A comprehensive, interactive 3D space telemetry dashboard that integrates real-time scientific data from NASA, JPL, CelesTrak, and OSDR.",
+  "main": "main.js",
+  "scripts": {
+    "start": "http-server -p 8080 -c-1",
+    "dev": "http-server -p 8080 -c-1"
+  },
+  "keywords": [
+    "threejs",
+    "nasa-api",
+    "telemetry",
+    "space",
+    "interactive-3d",
+    "dashboard"
+  ],
+  "author": "Antigravity AI & Kushal",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
