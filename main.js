@@ -1163,21 +1163,17 @@ window.addEventListener('mousemove', (e) => {
         cursor.classList.remove('hovering');
     }
 
-    // Spawn light trail dots (throttled for high performance)
+    // Spawn light trail dots (throttled)
     const now = Date.now();
-    if (now - lastTrailTime > 35) {
+    if (now - lastTrailTime > 40) {
         lastTrailTime = now;
         const trail = document.createElement('div');
         trail.className = 'cursor-trail';
-        trail.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
-        
-        const inner = document.createElement('div');
-        inner.className = 'cursor-trail-inner';
-        trail.appendChild(inner);
-        
+        trail.style.left = e.clientX + 'px';
+        trail.style.top = e.clientY + 'px';
         document.body.appendChild(trail);
         // Remove after animation completes
-        setTimeout(() => trail.remove(), 420);
+        setTimeout(() => trail.remove(), 350);
     }
 });
 
@@ -1500,9 +1496,10 @@ const tick = () => {
     }
 
     // Animate custom cursor with lerp for smoothness
-    currentCursorX += (mouseX - currentCursorX) * 0.65; // Snappier and faster follow (lerp factor 0.65 instead of 0.4)
-    currentCursorY += (mouseY - currentCursorY) * 0.65;
-    cursor.style.transform = `translate3d(${currentCursorX}px, ${currentCursorY}px, 0) translate(-50%, -50%)`;
+    currentCursorX += (mouseX - currentCursorX) * 0.45;
+    currentCursorY += (mouseY - currentCursorY) * 0.45;
+    cursor.style.left = currentCursorX + 'px';
+    cursor.style.top = currentCursorY + 'px';
 
     // Apply UI Tech Rings Rotations (Contra-rotating locks)
     uiRing1.rotation.z -= 0.005; // Inner spins CCW

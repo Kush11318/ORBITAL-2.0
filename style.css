@@ -26,19 +26,16 @@ body, html {
 /* Simple glowing dot cursor */
 .custom-cursor {
     position: fixed;
-    top: 0;
-    left: 0;
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: #4fa8ff;
     pointer-events: none;
     z-index: 10000;
-    transform: translate3d(0, 0, 0) translate(-50%, -50%);
+    transform: translate(-50%, -50%);
     box-shadow: 0 0 8px #4fa8ff, 0 0 18px rgba(79, 168, 255, 0.5);
     transition: width 0.15s ease, height 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     mix-blend-mode: screen;
-    will-change: transform;
 }
 
 .custom-cursor.hovering {
@@ -48,33 +45,23 @@ body, html {
     box-shadow: 0 0 10px #a78bfa, 0 0 24px rgba(167, 139, 250, 0.5);
 }
 
-/* Cursor trail container — GPU accelerated positioning */
+/* Cursor trail dot — injected by JS */
 .cursor-trail {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-    z-index: 9999;
-    will-change: transform;
-}
-
-/* Inner trail dot with fade/scale animation */
-.cursor-trail-inner {
-    position: absolute;
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #4fa8ff;
+    pointer-events: none;
+    z-index: 9999;
     transform: translate(-50%, -50%);
+    background: #4fa8ff;
     opacity: 0;
-    animation: trail-fade 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    animation: trail-fade 0.35s ease-out forwards;
 }
 
 @keyframes trail-fade {
-    0%   { opacity: 0.65; transform: translate(-50%, -50%) scale(1.1); }
-    100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.15); }
+    0%   { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.25); }
 }
 
 .scanlines {
