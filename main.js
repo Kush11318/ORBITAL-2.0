@@ -1147,6 +1147,8 @@ gltfLoader.load(
 const cursor = document.querySelector('.custom-cursor');
 let mouseX = window.innerWidth / 2;
 let mouseY = window.innerHeight / 2;
+let currentCursorX = window.innerWidth / 2;
+let currentCursorY = window.innerHeight / 2;
 
 let lastTrailTime = 0;
 window.addEventListener('mousemove', (e) => {
@@ -1161,17 +1163,21 @@ window.addEventListener('mousemove', (e) => {
         cursor.classList.remove('hovering');
     }
 
-    // Spawn light trail dots (throttled)
+    // Spawn light trail dots (throttled for high performance)
     const now = Date.now();
-    if (now - lastTrailTime > 30) {
+    if (now - lastTrailTime > 35) {
         lastTrailTime = now;
         const trail = document.createElement('div');
         trail.className = 'cursor-trail';
-        trail.style.left = e.clientX + 'px';
-        trail.style.top = e.clientY + 'px';
+        trail.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+        
+        const inner = document.createElement('div');
+        inner.className = 'cursor-trail-inner';
+        trail.appendChild(inner);
+        
         document.body.appendChild(trail);
         // Remove after animation completes
-        setTimeout(() => trail.remove(), 520);
+        setTimeout(() => trail.remove(), 420);
     }
 });
 
@@ -1494,10 +1500,9 @@ const tick = () => {
     }
 
     // Animate custom cursor with lerp for smoothness
-    const currentCursorX = parseFloat(cursor.style.left || window.innerWidth / 2);
-    const currentCursorY = parseFloat(cursor.style.top || window.innerHeight / 2);
-    cursor.style.left = (currentCursorX + (mouseX - currentCursorX) * 0.4) + 'px';
-    cursor.style.top = (currentCursorY + (mouseY - currentCursorY) * 0.4) + 'px';
+    currentCursorX += (mouseX - currentCursorX) * 0.65; // Snappier and faster follow (lerp factor 0.65 instead of 0.4)
+    currentCursorY += (mouseY - currentCursorY) * 0.65;
+    cursor.style.transform = `translate3d(${currentCursorX}px, ${currentCursorY}px, 0) translate(-50%, -50%)`;
 
     // Apply UI Tech Rings Rotations (Contra-rotating locks)
     uiRing1.rotation.z -= 0.005; // Inner spins CCW
