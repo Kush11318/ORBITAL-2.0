@@ -1145,16 +1145,12 @@ gltfLoader.load(
  * Custom Sci-Fi Cursor
  */
 const cursor = document.querySelector('.custom-cursor');
-let mouseX = window.innerWidth / 2;
-let mouseY = window.innerHeight / 2;
-let currentCursorX = window.innerWidth / 2;
-let currentCursorY = window.innerHeight / 2;
-let lastFrameTime = performance.now();
 
 let lastTrailTime = 0;
 window.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+    // Position the custom cursor instantly for zero latency
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
 
     // Add hover effect if over clickable elements
     const hoverable = e.target.closest('a, button, [role="button"]');
@@ -1244,11 +1240,6 @@ let currentScrollFraction = 0;
 let isModelLoaded = false;
 const tick = () => {
     window.requestAnimationFrame(tick);
-
-    // Calculate deltaTime for frame-rate independent updates
-    const now = performance.now();
-    const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.1);
-    lastFrameTime = now;
 
     // Do not run animations until the model is fully loaded and screen is gone
     if (!isModelLoaded) return;
@@ -1501,11 +1492,7 @@ const tick = () => {
         }
     }
 
-    // Animate custom cursor with frame-rate independent lerp for absolute smoothness
-    const lerpFactor = 1 - Math.exp(-38 * deltaTime); // Matches ~0.45 at 60fps but eliminates micro-stutters
-    currentCursorX += (mouseX - currentCursorX) * lerpFactor;
-    currentCursorY += (mouseY - currentCursorY) * lerpFactor;
-    cursor.style.transform = `translate(${currentCursorX}px, ${currentCursorY}px) translate(-50%, -50%)`;
+
 
     // Apply UI Tech Rings Rotations (Contra-rotating locks)
     uiRing1.rotation.z -= 0.005; // Inner spins CCW
