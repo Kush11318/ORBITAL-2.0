@@ -1147,6 +1147,29 @@ gltfLoader.load(
 const cursor = document.querySelector('.custom-cursor');
 let mouseX = window.innerWidth / 2;
 let mouseY = window.innerHeight / 2;
+let cursorX = window.innerWidth / 2;
+let cursorY = window.innerHeight / 2;
+
+// Optimize trails by using a pre-created pool of DOM elements to avoid layout thrashing and garbage collection
+const cursorTrailContainer = document.createElement('div');
+cursorTrailContainer.id = 'cursor-trail-container';
+document.body.appendChild(cursorTrailContainer);
+
+const maxTrails = 20;
+const trailsPool = [];
+for (let i = 0; i < maxTrails; i++) {
+    const el = document.createElement('div');
+    el.className = 'cursor-trail';
+    cursorTrailContainer.appendChild(el);
+    trailsPool.push({
+        el: el,
+        x: 0,
+        y: 0,
+        age: 0,
+        active: false
+    });
+}
+let trailIndex = 0;
 
 let lastTrailTime = 0;
 window.addEventListener('mousemove', (e) => {
@@ -1161,17 +1184,16 @@ window.addEventListener('mousemove', (e) => {
         cursor.classList.remove('hovering');
     }
 
-    // Spawn light trail dots (throttled)
+    // Activate a trail from the pool (throttled)
     const now = Date.now();
-    if (now - lastTrailTime > 30) {
+    if (now - lastTrailTime > 25) {
         lastTrailTime = now;
-        const trail = document.createElement('div');
-        trail.className = 'cursor-trail';
-        trail.style.left = e.clientX + 'px';
-        trail.style.top = e.clientY + 'px';
-        document.body.appendChild(trail);
-        // Remove after animation completes
-        setTimeout(() => trail.remove(), 520);
+        const trail = trailsPool[trailIndex];
+        trail.x = e.clientX;
+        trail.y = e.clientY;
+        trail.age = 0;
+        trail.active = true;
+        trailIndex = (trailIndex + 1) % maxTrails;
     }
 });
 
@@ -1493,11 +1515,27 @@ const tick = () => {
         }
     }
 
-    // Animate custom cursor with lerp for smoothness
-    const currentCursorX = parseFloat(cursor.style.left || window.innerWidth / 2);
-    const currentCursorY = parseFloat(cursor.style.top || window.innerHeight / 2);
-    cursor.style.left = (currentCursorX + (mouseX - currentCursorX) * 0.4) + 'px';
-    cursor.style.top = (currentCursorY + (mouseY - currentCursorY) * 0.4) + 'px';
+    // Animate custom cursor with GPU-accelerated translate3d (no layout reflows)
+    cursorX += (mouseX - cursorX) * 0.28; // Fast, responsive follow (optimized from 0.4 lerp + layout write)
+    cursorY += (mouseY - cursorY) * 0.28;
+    cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
+
+    // Update trail particles pool (GPU-accelerated, no DOM layout thrashing)
+    trailsPool.forEach(t => {
+        if (t.active) {
+            t.age += 16.67; // approx ms per frame
+            const progress = t.age / 500; // 500ms duration
+            if (progress >= 1) {
+                t.active = false;
+                t.el.style.opacity = '0';
+            } else {
+                const opacity = 0.55 * (1 - progress);
+                const scale = 1 - progress * 0.8;
+                t.el.style.opacity = opacity.toString();
+                t.el.style.transform = `translate3d(${t.x}px, ${t.y}px, 0) translate(-50%, -50%) scale(${scale})`;
+            }
+        }
+    });
 
     // Apply UI Tech Rings Rotations (Contra-rotating locks)
     uiRing1.rotation.z -= 0.005; // Inner spins CCW
