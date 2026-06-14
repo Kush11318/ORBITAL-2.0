@@ -1145,9 +1145,14 @@ gltfLoader.load(
  * Custom Sci-Fi Cursor
  */
 const cursor = document.querySelector('.custom-cursor');
+let mouseX = window.innerWidth / 2;
+let mouseY = window.innerHeight / 2;
 
 let lastTrailTime = 0;
 window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
     // Position the custom cursor instantly for zero latency
     cursor.style.left = e.clientX + 'px';
     cursor.style.top = e.clientY + 'px';
